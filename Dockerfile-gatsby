@@ -1,0 +1,38 @@
+FROM node:12.18.3
+WORKDIR /app
+COPY package*.json ./
+COPY yarn.lock ./
+RUN yarn global add gatsby-cli && gatsby telemetry --disable
+RUN yarn install
+COPY . ./
+
+# set inotify and start the node application, replace yar with your command
+RUN echo "#!/bin/sh \n\
+echo "fs.inotify.max_user_watches before update" \n\
+cat /etc/sysctl.conf\n\
+echo "______________________________________________updating inotify ____________________________________" \n\
+echo fs.inotify.max_user_watches=524288 | tee -a /etc/sysctl.conf && sysctl -p \n\
+echo "updated value is" \n\
+cat /etc/sysctl.conf | grep fs.inotify \n\
+exec gatsby develop -H 0.0.0.0 \
+" >> entrypoint.sh
+
+RUN ls && chmod 755 entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
+#RUN cat /proc/sys/fs/inotify/max_user_watches >text.txt
+
+#RUN echo text.txt
+
+
+#RUN yarn add webpack-dev-server --save-dev
+EXPOSE 8000
+
+#RUN usermod -aG sudo user
+#USER root
+#RUN echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+
+#RUN gatsby build
+
+#CMD ["gatsby build && gh-pages -d public"]
+CMD ["/bin/sh /app/entrypoint.sh"]
